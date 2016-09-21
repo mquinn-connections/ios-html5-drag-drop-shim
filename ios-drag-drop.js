@@ -311,18 +311,7 @@
   }
 
   function touchend(evt) {
-    var el = evt.target;
-
-    if(dragging) {
-      dragging = false;
-    } else {
-      var clickEvt = document.createEvent("MouseEvents");
-      clickEvt.initMouseEvent("click", true, true, el.ownerDocument.defaultView, 1,
-          evt.screenX, evt.screenY, evt.clientX, evt.clientY,
-          evt.ctrlKey, evt.altKey, evt.shiftKey, evt.metaKey, 0, null);
-      el.dispatchEvent(clickEvt);
-      log("Simulating click to anchor");
-    }
+    dragging = false;
   }
 
   // DOM helpers
