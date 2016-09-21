@@ -17,14 +17,15 @@
     log((needsPatch ? "" : "not ") + "patching html5 drag drop");
 
     if(!needsPatch) {
-        return;
+      return;
     }
 
     if(!config.enableEnterLeave) {
       DragDrop.prototype.synthesizeEnterLeave = noop;
     }
 
-    doc.addEventListener("touchstart", touchstart);
+    doc.addEventListener("touchmove", touchmove);
+    doc.addEventListener("touchend", touchend);
   }
 
   function DragDrop(event, el) {
@@ -158,7 +159,7 @@
         dropEffect: "move"
       };
       dropEvt.preventDefault = function() {
-         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=14638 - if we don't cancel it, we'll snap back
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=14638 - if we don't cancel it, we'll snap back
       }.bind(this);
 
       once(doc, "drop", function() {
@@ -248,10 +249,10 @@
     createDragImage: function() {
       if (this.customDragImage) {
         this.dragImage = this.customDragImage.cloneNode(true);
-        duplicateStyle(this.customDragImage, this.dragImage); 
+        duplicateStyle(this.customDragImage, this.dragImage);
       } else {
         this.dragImage = this.el.cloneNode(true);
-        duplicateStyle(this.el, this.dragImage); 
+        duplicateStyle(this.el, this.dragImage);
       }
       this.dragImage.style.opacity = "0.5";
       this.dragImage.style.position = "absolute";
@@ -281,35 +282,56 @@
     }
   };
 
-  // event listeners
-  function touchstart(evt) {
-    var el = evt.target;
-    do {
-      if (el.draggable === true) {
-        // If draggable isn't explicitly set for anchors, then simulate a click event.
-        // Otherwise plain old vanilla links will stop working.
-        // https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Touch_events#Handling_clicks
-        if (!el.hasAttribute("draggable") && el.tagName.toLowerCase() == "a") {
-          var clickEvt = document.createEvent("MouseEvents");
-          clickEvt.initMouseEvent("click", true, true, el.ownerDocument.defaultView, 1,
-            evt.screenX, evt.screenY, evt.clientX, evt.clientY,
-            evt.ctrlKey, evt.altKey, evt.shiftKey, evt.metaKey, 0, null);
-          el.dispatchEvent(clickEvt);
-          log("Simulating click to anchor");
+  var dragging = false;
+
+  function touchmove(evt) {
+    if(!dragging) {
+      var el = evt.target;
+      do {
+        if (el.draggable === true) {
+          // If draggable isn't explicitly set for anchors, then simulate a click event.
+          // Otherwise plain old vanilla links will stop working.
+          // https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Touch_events#Handling_clicks
+          if (!el.hasAttribute("draggable") && el.tagName.toLowerCase() == "a") {
+            var clickEvt = document.createEvent("MouseEvents");
+            clickEvt.initMouseEvent("click", true, true, el.ownerDocument.defaultView, 1,
+                evt.screenX, evt.screenY, evt.clientX, evt.clientY,
+                evt.ctrlKey, evt.altKey, evt.shiftKey, evt.metaKey, 0, null);
+            el.dispatchEvent(clickEvt);
+            log("Simulating click to anchor");
+          }
+          evt.preventDefault();
+          new DragDrop(evt,el);
+          break;
         }
-        evt.preventDefault();
-        new DragDrop(evt,el);
-        break;
-      }
-    } while((el = el.parentNode) && el !== doc.body);
+      } while((el = el.parentNode) && el !== doc.body);
+
+      dragging = true;
+    }
+    console.log('touchmove');
+  }
+
+  function touchend(evt) {
+    var el = evt.target;
+
+    if(dragging) {
+      dragging = false;
+    } else {
+      var clickEvt = document.createEvent("MouseEvents");
+      clickEvt.initMouseEvent("click", true, true, el.ownerDocument.defaultView, 1,
+          evt.screenX, evt.screenY, evt.clientX, evt.clientY,
+          evt.ctrlKey, evt.altKey, evt.shiftKey, evt.metaKey, 0, null);
+      el.dispatchEvent(clickEvt);
+      log("Simulating click to anchor");
+    }
   }
 
   // DOM helpers
   function elementFromTouchEvent(el,event) {
     var touch = event.changedTouches[0];
     var target = doc.elementFromPoint(
-      touch[coordinateSystemForElementFromPoint + "X"],
-      touch[coordinateSystemForElementFromPoint + "Y"]
+        touch[coordinateSystemForElementFromPoint + "X"],
+        touch[coordinateSystemForElementFromPoint + "Y"]
     );
     return target;
   }
@@ -383,8 +405,8 @@
   function average(arr) {
     if (arr.length === 0) return 0;
     return arr.reduce((function(s, v) {
-      return v + s;
-    }), 0) / arr.length;
+          return v + s;
+        }), 0) / arr.length;
   }
 
   function noop() {}
