@@ -308,7 +308,6 @@
 
       dragging = true;
     }
-    console.log('touchmove');
   }
 
   function touchend(evt) {
